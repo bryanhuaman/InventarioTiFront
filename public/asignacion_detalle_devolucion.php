@@ -8,21 +8,15 @@ if (!$id_asignacion) {
 }
 
 // Cargar todos los datos de la asignación y devolución
-$sql = "SELECT 
-            a.*,
-            e.codigo_inventario, ma.nombre as marca_nombre, mo.nombre as modelo_nombre,
-            emp.nombres, emp.apellidos
-        FROM asignaciones a
-        JOIN equipos e ON a.id_equipo = e.id
-        JOIN empleados emp ON a.id_empleado = emp.id
-        JOIN marcas ma ON e.id_marca = ma.id
-        JOIN modelos mo ON e.id_modelo = mo.id
-        WHERE a.id = ? AND a.estado_asignacion = 'Finalizada'";
-$stmt = $conexion->prepare($sql);
-$stmt->bind_param("i", $id_asignacion);
-$stmt->execute();
-$devolucion = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+require_once __DIR__ . '/../api_clients/AsignacionApiClient.php';
+$asignacionApi = new AsignacionApiClient();
+try {
+    $devolucion = $asignacionApi->obtenerAsingacionFinalizada($id_asignacion);
+} catch (Exception $e) {
+    // Manejar el error apropiadamente
+    header("Location: asignaciones.php");
+    exit();
+}
 
 if (!$devolucion) {
     // Si no se encuentra o no está finalizada, redirigir
@@ -31,9 +25,9 @@ if (!$devolucion) {
 }
 
 $imagenes_adjuntas = array_filter([
-    $devolucion['imagen_devolucion_1'], 
-    $devolucion['imagen_devolucion_2'], 
-    $devolucion['imagen_devolucion_3']
+    $devolucion['imagenDevolucion1'],
+    $devolucion['imagenDevolucion2'],
+    $devolucion['imagenDevolucion3']
 ]);
 ?>
 
@@ -47,13 +41,13 @@ $imagenes_adjuntas = array_filter([
         <div class="card">
             <div class="card-header">Información de la Devolución</div>
             <div class="card-body">
-                <p><strong>Empleado:</strong> <?php echo htmlspecialchars($devolucion['apellidos'] . ', ' . $devolucion['nombres']); ?></p>
-                <p><strong>Equipo:</strong> <?php echo htmlspecialchars($devolucion['codigo_inventario'] . ' - ' . $devolucion['marca_nombre'] . ' ' . $devolucion['modelo_nombre']); ?></p>
-                <p><strong>Fecha de Devolución:</strong> <?php echo date('d/m/Y H:i', strtotime($devolucion['fecha_devolucion'])); ?></p>
+                <p><strong>Empleado:</strong> <?php echo htmlspecialchars($devolucion['apellidosEmpleado'] . ', ' . $devolucion['nombresEmpleado']); ?></p>
+                <p><strong>Equipo:</strong> <?php echo htmlspecialchars($devolucion['codigoInventario'] . ' - ' . $devolucion['marcaNombre'] . ' ' . $devolucion['modeloNombre']); ?></p>
+                <p><strong>Fecha de Devolución:</strong> <?php echo date('d/m/Y H:i', strtotime($devolucion['fechaDevolucion'])); ?></p>
                 <hr>
                 <p class="mb-1"><strong>Observaciones registradas:</strong></p>
                 <blockquote class="blockquote">
-                    <p class="mb-0 fst-italic">"<?php echo !empty($devolucion['observaciones_devolucion']) ? htmlspecialchars($devolucion['observaciones_devolucion']) : 'No se registraron observaciones.'; ?>"</p>
+                    <p class="mb-0 fst-italic">"<?php echo !empty($devolucion['observacionesDevolucion']) ? htmlspecialchars($devolucion['observacionesDevolucion']) : 'No se registraron observaciones.'; ?>"</p>
                 </blockquote>
             </div>
         </div>

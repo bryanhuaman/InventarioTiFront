@@ -1,36 +1,36 @@
 <?php
-require_once '../config/database.php';
+require_once '../api_clients/UsuariosApiClient.php';
 
 $nombre = 'Admin';
 $email = 'admin@tuempresa.com';
-$password_plano = 'admin123'; // Cambia esta contraseña
+$password_plano = '123'; // Cambia esta contraseña
 $id_rol = 1; // 1 = Administrador
 
-// Hashear la contraseña de forma segura
-$password_hash = password_hash($password_plano, PASSWORD_DEFAULT);
 
-// Iniciar transacción
-$conexion->begin_transaction();
 try {
-    // Insertar usuario
-    $stmt_user = $conexion->prepare("INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)");
-    $stmt_user->bind_param("sss", $nombre, $email, $password_hash);
-    $stmt_user->execute();
-    $id_usuario = $stmt_user->insert_id;
-    $stmt_user->close();
+        $usuarioApi = new UsuariosApiClient();
 
-    // Asignar rol
-    $stmt_role = $conexion->prepare("INSERT INTO usuario_roles (id_usuario, id_rol) VALUES (?, ?)");
-    $stmt_role->bind_param("ii", $id_usuario, $id_rol);
-    $stmt_role->execute();
-    $stmt_role->close();
+        $payload = [
+            'nombre' => $nombre,
+            'email' => $email,
+            'password' => $password_plano,
+            'sucursalId' =>  null,
+            'rolId' => $id_rol
+        ];
 
-    // Confirmar transacción
-    $conexion->commit();
-    echo "¡Usuario administrador creado con éxito! <br>Email: {$email} <br>Password: {$password_plano} <br><b>YA PUEDES BORRAR ESTE ARCHIVO.</b>";
+            $resultado = $usuarioApi->crearUsuario($payload);
 
-} catch (mysqli_sql_exception $exception) {
-    $conexion->rollback();
+            $_SESSION['alert_message'] = [
+                'type' => $resultado['status'] === 201 ? 'success' : 'error',
+                'text' => $resultado['mensaje']
+            ];
+
+    echo "¡Usuario administrador creado con éxito! <br>";
+    echo "Email: " . htmlspecialchars($email) . "<br>";
+    echo "Password: " . htmlspecialchars($password_plano) . "<br>";
+    echo "<b>YA PUEDES BORRAR ESTE ARCHIVO.</b>";
+
+}catch (Exception $exception) {
+//    $conexion->rollback();
     echo "Error al crear el usuario: " . $exception->getMessage();
 }
-?>

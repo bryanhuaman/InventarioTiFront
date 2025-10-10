@@ -22,4 +22,17 @@ class CargoApiClient{
         return json_decode($response, true);
 
     }
+
+    public function obtenerCargosPorArea($id_area)
+    {
+        $url = $this->baseUrl . "/area/" . $id_area;
+
+        $response = @file_get_contents($url);
+        if ($response === false) {
+            throw new Exception("Error al obtener cargos de la area ID {$id_area}");
+        }
+
+        return json_decode($response, true);
+    }
+
 }

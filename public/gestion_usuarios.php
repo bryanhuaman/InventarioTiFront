@@ -7,7 +7,28 @@ if ($_SESSION['user_rol'] !== 'Administrador') {
     require_once '../templates/footer.php';
     exit();
 }
-//$usuarios = $conexion->query("SELECT u.id, u.nombre, u.email, r.nombre_rol, s.nombre as sucursal_nombre FROM usuarios u LEFT JOIN usuario_roles ur ON u.id = ur.id_usuario LEFT JOIN roles r ON ur.id_rol = r.id LEFT JOIN sucursales s ON u.id_sucursal = s.id ORDER BY u.nombre");
+
+//MOSTAR MENSAJE DESPUES DE AGREGAR
+if (isset($_SESSION['alert_message'])) {
+    $msg = $_SESSION['alert_message'];
+
+
+    echo '
+    <script>
+        toastMixin.fire({
+            position: "top-end",
+            icon: "' . addslashes($msg['type']) . '",   // success, error, warning, info, question
+            title: "' . addslashes($msg['text']) . '",
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+        });
+    </script>
+    ';
+
+
+    unset($_SESSION['alert_message']); // Eliminar después de mostrar
+}
 
 // Ususarios API Client
 require_once __DIR__ . '/../api_clients/UsuariosApiClient.php';

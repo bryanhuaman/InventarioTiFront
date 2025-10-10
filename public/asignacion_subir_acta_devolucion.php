@@ -30,22 +30,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['acta_devolucion'])) 
 
             if (move_uploaded_file($file_tmp_path, $dest_path)) {
                 // Actualizar la base de datos con la ruta del archivo
-                $stmt = $conexion->prepare("UPDATE asignaciones SET acta_devolucion_path = ? WHERE id = ?");
-                $stmt->bind_param("si", $new_file_name, $id_asignacion);
-                if ($stmt->execute()) {
-                    header("Location: asignaciones.php?status=upload_success");
+                Require_once '../api_clients/AsignacionApiClient.php';
+                $apiClient = new AsignacionApiClient();
+                $payload = [
+                        "actaDevolucionPath" => $new_file_name
+                ];
+                try {
+                    $response = $apiClient->actualizarActas($id_asignacion,$payload);
+
+                    $_SESSION['alert_message'] = [
+                            'type' => $response['status'] === 200 ? 'success' : 'error',
+                            'text' => $response['mensaje']
+                    ];
+                    header("Location: asignaciones.php");
                     exit();
-                } else {
-                    $error_message = "Error al actualizar la base de datos.";
+                } catch (Exception $e) {
+                    header("Location: asignaciones.php");
+                    exit();
                 }
+
             } else {
-                $error_message = "Error al mover el archivo subido.";
+                $_SESSION['alert_message'] = [
+                        'type' =>"error",
+                        'text' => "Error al mover el archivo subido."
+                ];
             }
         } else {
-            $error_message = "Formato de archivo no válido. Solo se permiten archivos PDF.";
+            $_SESSION['alert_message'] = [
+                    'type' =>"error",
+                    'text' => "Formato de archivo no válido. Solo se permiten archivos PDF."
+            ];
         }
     } else {
-        $error_message = "Error al subir el archivo. Código: " . $file['error'];
+        $_SESSION['alert_message'] = [
+                'type' =>"error",
+                'text' => "Error al subir el archivo. Código: " . $file['error']
+        ];
     }
 }
 ?>
@@ -58,17 +78,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['acta_devolucion'])) 
 
 <div class="card">
     <div class="card-body">
-        <form action="asignacion_subir_acta_devolucion.php?id=<?php echo $id_asignacion; ?>" method="POST" enctype="multipart/form-data">
+        <form id="subirActaDevoForm" action="asignacion_subir_acta_devolucion.php?id=<?php echo $id_asignacion; ?>" method="POST" enctype="multipart/form-data">
             <div class="mb-3">
                 <label for="acta_devolucion" class="form-label">Seleccionar Archivo PDF <span class="text-danger">*</span></label>
                 <input class="form-control" type="file" id="acta_devolucion" name="acta_devolucion" accept=".pdf" required>
                 <div class="form-text">El archivo debe estar en formato PDF y no debe exceder los 5MB.</div>
             </div>
-            
+
             <hr class="my-4">
             <a href="asignaciones.php" class="btn btn-secondary">Cancelar</a>
             <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-2"></i>Subir Archivo</button>
         </form>
+
+        <script>
+            document.getElementById("subirActaDevoForm").addEventListener("submit", function(event) {
+                event.preventDefault(); // Evita el envío automático del formulario
+
+                Swal.fire({
+                    title: "¿Estás seguro?",
+                    text: "No podrás revertir esta acción.",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#3085d6",
+                    cancelButtonColor: "#d33",
+                    confirmButtonText: "Sí, confirmar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Mostrar confirmación y luego enviar el formulario
+                        // Swal.fire({
+                        //     title: "Asignado!",
+                        //     text: "Se asigno correctamente.",
+                        //     icon: "success",
+                        //     timer: 2000,
+                        //     showConfirmButton: false
+                        // });
+
+                        // Enviar el formulario realmente
+                        setTimeout(() => {
+                            event.target.submit();
+                        }, 1500);
+                    }
+                });
+            });
+        </script>
+
+
+        <div class="mt-3">
+            <button type="button" class="btn btn-warning" onclick="window.open('../public/generar_acta_devolucion.php?id_asignacion=<?php echo $id_asignacion; ?>', '_blank')"><i class="bi bi-file-earmark-arrow-down-fill me-2"></i>Descargar Acta de Devolución</button>
+        </div>
     </div>
 </div>
 

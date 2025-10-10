@@ -22,23 +22,19 @@ if (isset($_GET['action']) && isset($_GET['id']) && isset($_GET['type'])) {
 
 //Mensaje de éxito al cambiar estado
 if (isset($_GET['msg']) && $_GET['msg'] === 'ok') {
-    echo "
-        <div id='alerta' 
-             class='alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3 shadow' 
-             role='alert'
-             style='z-index: 9999;'>
-            Estado actualizado correctamente
-        </div>
-        <script>
-            setTimeout(() => {
-                const alerta = document.getElementById('alerta');
-                if (alerta) {
-                    alerta.classList.remove('show');
-                    alerta.classList.add('hide');
-                }
-            }, 3000);
-        </script>
-    ";
+    echo '
+    <script>
+        toastMixin.fire({
+            position: "top-end",
+            icon: "success",   // success, error, warning, info, question
+            title: "Estado actualizado correctamente",
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+        });
+    </script>
+    ';
+
 }
 
 
@@ -59,24 +55,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $response = $catalogoApiClient->agregarElemento($catalogo, $data);
             $msg = $response['message'] ?? ("Error: " . json_encode($response));
-            //echo "<div class='alert alert-success mt-3'>{$msg}</div>";
-            echo "
-            <div id='alerta' 
-                 class='alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3 shadow' 
-                 role='alert'
-                 style='z-index: 9999;'>
-                {$msg}
-            </div>
-            <script>
-                setTimeout(() => {
-                    const alerta = document.getElementById('alerta');
-                    if (alerta) {
-                        alerta.classList.remove('show');
-                        alerta.classList.add('hide');
-                    }
-                }, 3000);
-            </script>
-        ";
+            echo '
+    <script>
+        toastMixin.fire({
+            position: "top-end",
+            icon: "success",   // success, error, warning, info, question
+            title: "' . addslashes($msg) . '",
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+        });
+    </script>
+    ';
 
         } catch (Exception $e) {
             echo "<div class='alert alert-danger mt-3'>Excepción: " . $e->getMessage() . "</div>";
@@ -88,26 +78,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 try {
     if (isset($_GET['status'])) {
         if ($_GET['status'] === 'success_edit') {
-            echo "
-            <div id='alerta' 
-                 class='alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3 shadow' 
-                 role='alert'
-                 style='z-index: 9999;'>
-                Elemento actualizado exitosamente
-            </div>
-            <script>
-                setTimeout(() => {
-                    const alerta = document.getElementById('alerta');
-                    if (alerta) {
-                        alerta.classList.remove('show');
-                        alerta.classList.add('hide');
-                    }
-                }, 3000);
-            </script>
-        ";
+            echo '
+    <script>
+        toastMixin.fire({
+            position: "top-end",
+            icon: "success",   // success, error, warning, info, question
+            title: "Elemento actualizado exitosamente",
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+        });
+    </script>
+    ';
+
         }
     }
 } catch (Exception $e) {
+    echo '
+    <script>
+        toastMixin.fire({
+            position: "top-end",
+            icon: "success",   // success, error, warning, info, question
+            title: "'. addslashes($e->getMessage()).'",
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+        });
+    </script>
+    ';
     error_log("Error mostrando mensaje de exito: " . $e->getMessage());
 }
 

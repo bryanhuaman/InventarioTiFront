@@ -19,11 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_rol'] = $usuario['nombre_rol'];
             $_SESSION['user_sucursal_id'] = $usuario['id_sucursal']; // ¡Importante!
 
-            header("Location: ../public/index.php");
+
+
+        $_SESSION['alert'] = [
+            'type' => 'success',
+            'title' => '¡Bienvenido de nuevo!, ',
+            'toast' => true
+        ];
+
+        header("Location: ../public/index.php");
             exit();
     }
 
-    
+
     header("Location: ../public/login.php?error=1");
+    //header("Location: ../public/login.php");
     exit();
 }

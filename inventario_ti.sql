@@ -214,7 +214,7 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `id_sucursal`, `nombre`, `email`, `password`, `activo`, `fecha_creacion`) VALUES
-(1, NULL, 'Admin', 'admin@correo.com', '$2y$10$67jd7Gb0Tlp/FDj/43CQdOLmEj3eKVnP7uLeJ4X9Zp7y3BnOdywgW', 1, '2025-08-03 06:56:20');
+(1, NULL, 'Admin', 'admin@correo.com', '$2y$10$8VAeY0U456FmB2kxVlpa9O/pGr1EcZxbsfEzIiSQdLYdAbZ6wyA5e', 1, '2025-08-03 06:56:20');
 
 -- --------------------------------------------------------
 

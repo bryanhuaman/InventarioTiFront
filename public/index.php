@@ -6,6 +6,36 @@
 require_once __DIR__ . '/../api_clients/EquipoApiClient.php';
 require_once __DIR__ . '/../api_clients/SucursalApiClient.php';
 
+// Revisa si existe un mensaje flash en la sesión
+if (isset($_SESSION['alert'])) {
+    $alert = $_SESSION['alert'];
+
+    // Genera el script de SweetAlert2
+    $saludo = htmlspecialchars($alert['title'] ?? '');
+    $nombreUsuario = htmlspecialchars($_SESSION['user_nombre'] ?? '');
+    $fullTitle = "{$saludo} <b>{$nombreUsuario}</b>";
+
+    echo "
+    <script>
+        Swal.fire({ // <-- CAMBIO AQUÍ: de mixin.fire a Swal.fire
+            toast: " . ($alert['toast'] ? 'true' : 'false') . ",
+            position: 'top',
+            icon: '" . htmlspecialchars($alert['type']) . "',
+            title: " . json_encode(trim($fullTitle)) . ",
+            showConfirmButton: false,
+            timer: 3500,
+            timerProgressBar: true,
+            didOpen: (toast) => { // Agregado para mejor UX en toasts
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+    </script>";
+
+    // Borra el mensaje de la sesión
+    unset($_SESSION['alert']);
+}
+
 // --- FILTRO POR SUCURSAL PARA LAS ESTADÍSTICAS ---
 $id_sucursal_usuario = $_SESSION['user_sucursal_id'];
 $es_admin_general = ($id_sucursal_usuario === null);

@@ -7,31 +7,34 @@ $es_admin_general = ($id_sucursal_usuario === null);
 $empleados = [];
 $equipos = [];
 if (!$es_admin_general) {
-    // Si no es admin, carga los datos de su propia sucursal por defecto
-    $filtro_sucursal_sql = " AND id_sucursal = " . (int)$id_sucursal_usuario;
-    
-    $empleados_q = $conexion->query("SELECT id, nombres, apellidos FROM empleados WHERE estado = 'Activo' {$filtro_sucursal_sql} ORDER BY apellidos");
-    if($empleados_q) $empleados = $empleados_q->fetch_all(MYSQLI_ASSOC);
-
-    $equipos_q = $conexion->query("SELECT e.id, e.codigo_inventario, ma.nombre as marca_nombre, mo.nombre as modelo_nombre FROM equipos e JOIN marcas ma ON e.id_marca = ma.id JOIN modelos mo ON e.id_modelo = mo.id WHERE e.estado = 'Disponible' {$filtro_sucursal_sql}");
-    if($equipos_q) $equipos = $equipos_q->fetch_all(MYSQLI_ASSOC);
+    Require_once '../api_clients/EmpleadoApiClient.php';
+    $empleadoApiClient = new EmpleadoApiClient();
+    Require_once '../api_clients/EquipoApiClient.php';
+    $equipoApiClient = new EquipoApiClient();
+    try {
+        $empleados = $empleadoApiClient->obtenerEmpleadosPorSucursal($id_sucursal_usuario);
+        $equipos = $equipoApiClient->obtenerEquipoPorSucursal($id_sucursal_usuario);
+    } catch (Exception $e) {
+        echo "<div class='alert alert-danger'>Error al cargar datos: " . htmlspecialchars($e->getMessage()) . "</div>";
+    }
 }
+Require_once '../api_clients/SucursalApiClient.php';
+$sucursalApiClient = new SucursalApiClient();
+$sucursales = $sucursalApiClient->listarSucursalesActivos();
 ?>
 
 <h1 class="h2 mb-4">Asignar Equipo a Empleado</h1>
 
-<form action="../includes/procesar_asignacion.php" method="POST">
+<form id="miFormulario" action="../includes/procesar_asignacion.php" method="POST">
 
     <?php if ($es_admin_general): ?>
     <div class="mb-3">
         <label for="selectSucursal" class="form-label">Seleccionar Sucursal <span class="text-danger">*</span></label>
         <select class="form-select" id="selectSucursal" name="id_sucursal" required>
             <option value="" selected>-- Primero selecciona una sucursal --</option>
-            <?php 
-            $sucursales = $conexion->query("SELECT * FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-            while ($sucursal = $sucursales->fetch_assoc()): ?>
+            <?php foreach ($sucursales as $sucursal): ?>
                 <option value="<?php echo $sucursal['id']; ?>"><?php echo htmlspecialchars($sucursal['nombre']); ?></option>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </select>
     </div>
     <?php endif; ?>
@@ -65,6 +68,39 @@ if (!$es_admin_general) {
     <a href="asignaciones.php" class="btn btn-secondary">Cancelar</a>
     <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Asignar Equipo</button>
 </form>
+
+    <script>
+        document.getElementById("miFormulario").addEventListener("submit", function(event) {
+            event.preventDefault(); // Evita el envío automático del formulario
+
+            Swal.fire({
+                title: "¿Estás seguro?",
+                text: "No podrás revertir esta acción.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Sí, confirmar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar confirmación y luego enviar el formulario
+                    // Swal.fire({
+                    //     title: "Asignado!",
+                    //     text: "Se asigno correctamente.",
+                    //     icon: "success",
+                    //     timer: 2000,
+                    //     showConfirmButton: false
+                    // });
+
+                    // Enviar el formulario realmente
+                    setTimeout(() => {
+                        event.target.submit();
+                    }, 1500);
+                }
+            });
+        });
+    </script>
+
 
 <?php if ($es_admin_general): ?>
 <script>

@@ -1,6 +1,27 @@
 <?php
 require_once '../templates/header.php';
 
+//MOSTAR MENSAJE DESPUES DE AGREGAR
+if (isset($_SESSION['alert_message'])) {
+    $msg = $_SESSION['alert_message'];
+    echo '
+    <script>
+        toastMixin.fire({
+            position: "top-end",
+            icon: "' . addslashes($msg['type']) . '",   // success, error, warning, info, question
+            title: "' . addslashes($msg['text']) . '",
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+        });
+    </script>
+    ';
+
+
+    unset($_SESSION['alert_message']); // Eliminar después de mostrar
+}
+
+
 // --- LÓGICA PARA CONSTRUIR LA CONSULTA SQL DINÁMICAMENTE ---
 $id_sucursal_usuario = $_SESSION['user_sucursal_id'];
 

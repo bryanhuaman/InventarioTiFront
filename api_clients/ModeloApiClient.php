@@ -17,4 +17,17 @@ class ModeloApiClient{
         $response = file_get_contents($url);
         return json_decode($response, true);
     }
+
+    public function obtenerModelosPorMarca($id_marca)
+    {
+        $url = $this->baseUrl . "/marca/" . $id_marca;
+
+        $response = @file_get_contents($url);
+        if ($response === false) {
+            throw new Exception("Error al obtener modelos de la marca ID {$id_marca}");
+        }
+
+        return json_decode($response, true);
+    }
+
 }

@@ -1,5 +1,6 @@
 <?php
 require_once '../templates/header.php';
+require_once '../api_clients/UsuariosApiClient.php';
 
 // Solo los administradores pueden acceder
 if (!isset($_SESSION['user_rol']) || $_SESSION['user_rol'] !== 'Administrador') {
@@ -14,54 +15,52 @@ if (!$id_usuario) {
     exit();
 }
 
+$usuarioApiClient = new UsuariosApiClient();
 // Lógica para ACTUALIZAR el usuario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = $_POST['nombre'];
     $email = $_POST['email'];
     $id_rol = $_POST['id_rol'];
     $id_sucursal = !empty($_POST['id_sucursal']) ? $_POST['id_sucursal'] : null;
-    $activo = $_POST['activo'];
-    
-    $conexion->begin_transaction();
+    $activo = isset($_POST['activo']) ? filter_var($_POST['activo'], FILTER_VALIDATE_BOOLEAN) : false;
+
+    // Datos a enviar en JSON
+    $data = [
+            'nombre' => $nombre,
+            'email' => $email,
+            'rolId' => (int)$id_rol,
+            'sucursalId' => $id_sucursal ? (int)$id_sucursal : null,
+            'activo' => $activo
+    ];
+
+    // Verificar respuesta
     try {
-        // 1. Actualizar tabla de usuarios
-        $stmt_user = $conexion->prepare("UPDATE usuarios SET nombre = ?, email = ?, id_sucursal = ?, activo = ? WHERE id = ?");
-        $stmt_user->bind_param("ssiii", $nombre, $email, $id_sucursal, $activo, $id_usuario);
-        $stmt_user->execute();
-
-        // 2. Actualizar tabla de roles (eliminar anterior e insertar nuevo para simplicidad)
-        $stmt_del_role = $conexion->prepare("DELETE FROM usuario_roles WHERE id_usuario = ?");
-        $stmt_del_role->bind_param("i", $id_usuario);
-        $stmt_del_role->execute();
-
-        $stmt_add_role = $conexion->prepare("INSERT INTO usuario_roles (id_usuario, id_rol) VALUES (?, ?)");
-        $stmt_add_role->bind_param("ii", $id_usuario, $id_rol);
-        $stmt_add_role->execute();
-
-        $conexion->commit();
-        header("Location: gestion_usuarios.php?status=success_edit");
+        // Llamada a la API
+        $response = $usuarioApiClient->actualizarUsuario($id_usuario, $data);
+        $_SESSION['alert_message'] = [
+                'type' => $response['status'] === 200 ? 'success' : 'error',
+                'text' => $response['mensaje']
+        ];
+        header("Location: gestion_usuarios.php");
         exit();
 
-    } catch (mysqli_sql_exception $exception) {
-        $conexion->rollback();
-        $error_message = "Error al actualizar el usuario: " . $exception->getMessage();
+    } catch (Exception $e) {
+        header("Location: gestion_usuarios.php");
+        exit();
+
     }
 }
 
 // Cargar datos del usuario a editar
-$stmt = $conexion->prepare("SELECT u.*, ur.id_rol FROM usuarios u LEFT JOIN usuario_roles ur ON u.id = ur.id_usuario WHERE u.id = ?");
-$stmt->bind_param("i", $id_usuario);
-$stmt->execute();
-$usuario = $stmt->get_result()->fetch_assoc();
-
-if (!$usuario) {
-    header("Location: gestion_usuarios.php");
-    exit();
-}
+$usuario = $usuarioApiClient->obtenerUsuario($id_usuario);
 
 // Cargar catálogos
-$roles = $conexion->query("SELECT * FROM roles ORDER BY nombre_rol");
-$sucursales = $conexion->query("SELECT * FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
+Require_once '../api_clients/RolApiClient.php';
+$rolApiClient = new RolApiClient();
+$roles = $rolApiClient->listar();
+Require_once '../api_clients/SucursalApiClient.php';
+$sucursalApiClient = new SucursalApiClient();
+$sucursales = $sucursalApiClient->listarSucursalesActivos();
 ?>
 
 <h1 class="h2 mb-4">Editar Usuario</h1>
@@ -85,22 +84,22 @@ $sucursales = $conexion->query("SELECT * FROM sucursales WHERE estado = 'Activo'
         <div class="col-md-4 mb-3">
             <label for="id_rol" class="form-label">Rol <span class="text-danger">*</span></label>
             <select class="form-select" name="id_rol" required>
-                <?php while ($rol = $roles->fetch_assoc()): ?>
-                    <option value="<?php echo $rol['id']; ?>" <?php if($rol['id'] == $usuario['id_rol']) echo 'selected'; ?>>
-                        <?php echo htmlspecialchars($rol['nombre_rol']); ?>
+                <?php foreach ($roles as $rol): ?>
+                    <option value="<?php echo $rol['id']; ?>" <?php if($rol['id'] == $usuario['rolId']) echo 'selected'; ?>>
+                        <?php echo htmlspecialchars($rol['nombreRol']); ?>
                     </option>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </select>
         </div>
         <div class="col-md-4 mb-3">
             <label for="id_sucursal" class="form-label">Sucursal</label>
             <select class="form-select" name="id_sucursal">
                 <option value="">General (Todas las sucursales)</option>
-                <?php while ($sucursal = $sucursales->fetch_assoc()): ?>
-                    <option value="<?php echo $sucursal['id']; ?>" <?php if($sucursal['id'] == $usuario['id_sucursal']) echo 'selected'; ?>>
+                <?php foreach ($sucursales as $sucursal): ?>
+                    <option value="<?php echo $sucursal['id']; ?>" <?php if($sucursal['id'] == $usuario['sucursalId']) echo 'selected'; ?>>
                         <?php echo htmlspecialchars($sucursal['nombre']); ?>
                     </option>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </select>
         </div>
         <div class="col-md-4 mb-3">

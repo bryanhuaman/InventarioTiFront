@@ -1,6 +1,27 @@
 <?php
 require_once '../templates/header.php';
 
+//MOSTAR MENSAJE DESPUES DE AGREGAR
+if (isset($_SESSION['alert_message'])) {
+    $msg = $_SESSION['alert_message'];
+    echo '
+    <script>
+        toastMixin.fire({
+            position: "top-end",
+            icon: "' . addslashes($msg['type']) . '",   // success, error, warning, info, question
+            title: "' . addslashes($msg['text']) . '",
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+        });
+    </script>
+    ';
+
+
+    unset($_SESSION['alert_message']); // Eliminar después de mostrar
+}
+
+
 $id_asignacion = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$id_asignacion) {
     header("Location: asignaciones.php");
@@ -8,25 +29,33 @@ if (!$id_asignacion) {
 }
 
 // Cargar datos de la asignación para mostrarlos
-$sql = "SELECT 
-            e.codigo_inventario, ma.nombre as marca_nombre, mo.nombre as modelo_nombre,
-            emp.nombres, emp.apellidos
-        FROM asignaciones a
-        JOIN equipos e ON a.id_equipo = e.id
-        JOIN empleados emp ON a.id_empleado = emp.id
-        JOIN marcas ma ON e.id_marca = ma.id
-        JOIN modelos mo ON e.id_modelo = mo.id
-        WHERE a.id = ?";
-$stmt = $conexion->prepare($sql);
-$stmt->bind_param("i", $id_asignacion);
-$stmt->execute();
-$asignacion = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-
-if (!$asignacion) {
+Require_once '../api_clients/AsignacionApiClient.php';
+$asignacionApiClient = new AsignacionApiClient();
+try {
+    $asignacion = $asignacionApiClient->obtenerAsignacionDetalle($id_asignacion);
+    if (!$asignacion) {
+        header("Location: asignaciones.php");
+        exit();
+    }
+} catch (Exception $e) {
     header("Location: asignaciones.php");
     exit();
 }
+//$sql = "SELECT
+//            e.codigo_inventario, ma.nombre as marca_nombre, mo.nombre as modelo_nombre,
+//            emp.nombres, emp.apellidos
+//        FROM asignaciones a
+//        JOIN equipos e ON a.id_equipo = e.id
+//        JOIN empleados emp ON a.id_empleado = emp.id
+//        JOIN marcas ma ON e.id_marca = ma.id
+//        JOIN modelos mo ON e.id_modelo = mo.id
+//        WHERE a.id = ?";
+//$stmt = $conexion->prepare($sql);
+//$stmt->bind_param("i", $id_asignacion);
+//$stmt->execute();
+//$asignacion = $stmt->get_result()->fetch_assoc();
+//$stmt->close();
+
 ?>
 
 <h1 class="h2 mb-4">Registrar Devolución de Equipo</h1>
@@ -35,11 +64,11 @@ if (!$asignacion) {
     <div class="card-header">Detalles de la Asignación</div>
     <div class="card-body">
         <p><strong>Empleado:</strong> <?php echo htmlspecialchars($asignacion['apellidos'] . ', ' . $asignacion['nombres']); ?></p>
-        <p><strong>Equipo:</strong> <?php echo htmlspecialchars($asignacion['codigo_inventario'] . ' - ' . $asignacion['marca_nombre'] . ' ' . $asignacion['modelo_nombre']); ?></p>
+        <p><strong>Equipo:</strong> <?php echo htmlspecialchars($asignacion['codigoInventario'] . ' - ' . $asignacion['marcaNombre'] . ' ' . $asignacion['modeloNombre']); ?></p>
     </div>
 </div>
 
-<form action="../includes/procesar_devolucion.php" method="POST" class="mt-4" enctype="multipart/form-data">
+<form id="devolucionForm" action="../includes/procesar_devolucion.php" method="POST" class="mt-4" enctype="multipart/form-data">
     <input type="hidden" name="id_asignacion" value="<?php echo $id_asignacion; ?>">
     
     <div class="mb-3">
@@ -76,5 +105,46 @@ if (!$asignacion) {
     <a href="asignaciones.php" class="btn btn-secondary">Cancelar</a>
     <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg"></i> Confirmar Devolución</button>
 </form>
+    <script>
+        document.getElementById("devolucionForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Evita el envío automático del formulario
+
+            Swal.fire({
+                title: "¿Estás seguro?",
+                text: "No podrás revertir esta acción.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Sí, confirmar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar confirmación y luego enviar el formulario
+                    // Swal.fire({
+                    //     title: "Asignado!",
+                    //     text: "Se asigno correctamente.",
+                    //     icon: "success",
+                    //     timer: 2000,
+                    //     showConfirmButton: false
+                    // });
+
+                    // Enviar el formulario realmente
+                    setTimeout(() => {
+                        event.target.submit();
+                    }, 1500);
+                }
+            });
+        });
+    </script>
+
+
+<!--    <script>-->
+<!--        document.getElementById('devolucionForm').addEventListener('submit', function(e) {-->
+<!--            // Abrir PDF en nueva pestaña al hacer click en el botón-->
+<!--            var id_asignacion = this.querySelector('input[name="id_asignacion"]').value;-->
+<!--            window.open('../public/generar_acta_devolucion.php?id_asignacion=' + id_asignacion, '_blank');-->
+<!--        });-->
+<!--    </script>-->
+
 
 <?php require_once '../templates/footer.php'; ?>

@@ -130,4 +130,104 @@ class EquipoApiClient
         return json_decode($response, true);
     }
 
+    //Agregar nuevo equipo
+    public function agregarEquipo($payload) {
+        $url = $this->baseUrl . "/insertar";
+
+        $options = [
+            'http' => [
+                'header'  => "Content-Type: application/json\r\n",
+                'method'  => 'POST',
+                'content' => json_encode($payload),
+                'ignore_errors' => true
+            ]
+        ];
+
+        $context = stream_context_create($options);
+        $response = @file_get_contents($url, false, $context);
+
+
+
+
+        return json_decode($response, true);
+    }
+
+    public function obtenerEquipo(int $id){
+        $url = $this->baseUrl . "/obtenerEquipo/{$id}";
+
+        $opciones = [
+            'http' => [
+                'method' => 'GET',
+                'header' => "Accept: application/json\r\n"
+            ]
+        ];
+
+        $contexto = stream_context_create($opciones);
+        $response = @file_get_contents($url, false, $contexto);
+
+        if ($response === FALSE) {
+            return [
+                'success' => false,
+                'message' => "Error al obtener el equipo con ID $id. Verifica la conexión o que el ID exista."
+            ];
+        }
+
+
+        return json_decode($response, true);
+    }
+
+    public function actualizarEquipo($id, $payload) {
+        $url = $this->baseUrl . "/actualizar/{$id}";
+
+        $options = [
+            'http' => [
+                'header'  => "Content-Type: application/json\r\n",
+                'method'  => 'PUT',
+                'content' => json_encode($payload),
+                'ignore_errors' => true
+            ]
+        ];
+
+        $context = stream_context_create($options);
+        $response = @file_get_contents($url, false, $context);
+
+
+
+
+        return json_decode($response, true);
+    }
+
+    public function obtenerEquipoPorSucursal($id_sucursal)
+    {
+        $url = $this->baseUrl . "/sucursal/" . $id_sucursal;
+
+        $response = @file_get_contents($url);
+        if ($response === false) {
+            throw new Exception("Error al obtener cargos de la area ID {$id_sucursal}");
+        }
+
+        return json_decode($response, true);
+    }
+
+    public function actualizarEstadoEquipo($id, $payload) {
+        $url = $this->baseUrl . "/actualizarestadoequipo/{$id}";
+
+        $options = [
+            'http' => [
+                'header'  => "Content-Type: application/json\r\n",
+                'method'  => 'PUT',
+                'content' => json_encode($payload),
+                'ignore_errors' => true
+            ]
+        ];
+
+        $context = stream_context_create($options);
+        $response = @file_get_contents($url, false, $context);
+
+
+
+
+        return json_decode($response, true);
+    }
+
 }

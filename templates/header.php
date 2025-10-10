@@ -10,6 +10,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" type="image/png" href="../public/img/inventarioicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Inventario TI</title>
@@ -18,6 +19,22 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="css/style.css?v=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        var toastMixin = Swal.mixin({
+            toast: true,
+            icon: 'success',
+            title: 'General Title',
+            animation: false,
+            position: 'top-right',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: toast => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            } });
+    </script>
 
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
 </head>
@@ -58,9 +75,30 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <li><span class="dropdown-item-text"><?php echo isset($_SESSION['user_rol']) ? htmlspecialchars($_SESSION['user_rol']) : 'Rol'; ?></span></li>
             <li><a class="dropdown-item" href="cambiar_password.php"><i class="bi bi-key me-2"></i> Restablecer Contraseña</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="logout.php">Cerrar Sesión</a></li>
+            <li><a id="cerrarSesionButton" class="dropdown-item" href="logout.php">Cerrar Sesión</a></li>
         </ul>
     </div>
 </div>
+
+<script>
+    document.getElementById("cerrarSesionButton").addEventListener("click", function(event) {
+        event.preventDefault(); // Evita el envío automático del formulario
+
+        Swal.fire({
+            title: "¿Estás seguro que deseas cerrar sesión?",
+            text: false,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Sí, confirmar"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // 3. Redirige manualmente a la página de logout
+                window.location.href = "logout.php";
+            }
+        });
+    });
+</script>
 
 <main class="main-content">

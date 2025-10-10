@@ -1,5 +1,7 @@
 <?php
 require_once '../templates/header.php';
+require_once '../api_clients/EmpleadoApiClient.php';
+$empleadoApiClient = new EmpleadoApiClient();
 
 // Validar el ID
 $id_empleado = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -10,48 +12,57 @@ if (!$id_empleado) {
 
 // Lógica para procesar la ACTUALIZACIÓN
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_sucursal_post = $_POST['id_sucursal'];
-    $dni = $_POST['dni'];
-    $nombres = $_POST['nombres'];
-    $apellidos = $_POST['apellidos'];
-    $id_cargo = $_POST['id_cargo'];
-    $id_area = $_POST['id_area'];
-    $estado = $_POST['estado'];
+// Capturar datos del formulario
+    $payload = [
+            "sucursalId" => $_POST['id_sucursal'],
+            "dni" => $_POST['dni'],
+            "nombres" => $_POST['nombres'],
+            "apellidos" => $_POST['apellidos'],
+            "areaId" => $_POST['id_area'],
+            "cargoId" => $_POST['id_cargo'],
+            "estado" => $_POST['estado'],
 
-    $sql_update = "UPDATE empleados SET 
-                    id_sucursal = ?, dni = ?, nombres = ?, apellidos = ?, 
-                    id_cargo = ?, id_area = ?, estado = ?
-                   WHERE id = ?";
-    
-    $stmt = $conexion->prepare($sql_update);
-    $stmt->bind_param("isssiisi", 
-        $id_sucursal_post, $dni, $nombres, $apellidos, $id_cargo, $id_area, $estado, $id_empleado);
-    
-    if ($stmt->execute()) {
-        header("Location: empleados.php?status=success_edit");
+    ];
+
+    try {
+        $response = $empleadoApiClient->actualizarEmpleado($id_empleado, $payload);
+
+        $_SESSION['alert_message'] = [
+                'type' => $response['status'] === 200 ? 'success' : 'error',
+                'text' => $response['mensaje']
+        ];
+        header("Location: empleados.php");
         exit();
-    } else {
-        $error_message = "Error al actualizar el empleado: " . $stmt->error;
+
+
+    } catch (Exception $e) {
+        header("Location: empleados.php");
+        exit();
+
     }
-    $stmt->close();
 }
 
 // Cargar datos del empleado a editar
-$stmt_select = $conexion->prepare("SELECT * FROM empleados WHERE id = ?");
-$stmt_select->bind_param("i", $id_empleado);
-$stmt_select->execute();
-$empleado = $stmt_select->get_result()->fetch_assoc();
-$stmt_select->close();
-
-if (!$empleado) {
-    header("Location: empleados.php");
-    exit();
-}
+$empleado = $empleadoApiClient->obtenerEmpleado($id_empleado);
 
 // Cargar catálogos
-$sucursales = $conexion->query("SELECT * FROM sucursales ORDER BY nombre");
-$areas = $conexion->query("SELECT * FROM areas ORDER BY nombre");
-$cargos = $conexion->query("SELECT * FROM cargos WHERE id_area = " . (int)$empleado['id_area'] . " ORDER BY nombre");
+//$sucursales = $conexion->query("SELECT * FROM sucursales ORDER BY nombre");
+require_once '../api_clients/SucursalApiClient.php';
+$sucursalApi = new SucursalApiClient();
+$sucursales = $sucursalApi->listarSucursales();
+//$areas = $conexion->query("SELECT * FROM areas ORDER BY nombre");
+require_once '../api_clients/AreaApiClient.php';
+$areaApi = new AreaApiClient();
+$areas = $areaApi->listar();
+//$cargos = $conexion->query("SELECT * FROM cargos WHERE id_area = " . (int)$empleado['id_area'] . " ORDER BY nombre");
+require_once '../api_clients/CargoApiClient.php';
+$cargoApi = new CargoApiClient();
+try {
+    $cargos = $cargoApi->obtenerCargosPorArea((int)$empleado['areaId']);
+} catch (Exception $e) {
+    header( "Location: empleados.php" );
+    exit();
+}
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -67,11 +78,11 @@ $cargos = $conexion->query("SELECT * FROM cargos WHERE id_area = " . (int)$emple
         <div class="col-md-12">
             <label for="id_sucursal" class="form-label">Sucursal <span class="text-danger">*</span></label>
             <select class="form-select" name="id_sucursal" required>
-                <?php while($sucursal = $sucursales->fetch_assoc()): ?>
-                    <option value="<?php echo $sucursal['id']; ?>" <?php echo ($sucursal['id'] == $empleado['id_sucursal']) ? 'selected' : ''; ?>>
+                <?php foreach ($sucursales as $sucursal): ?>
+                    <option value="<?php echo $sucursal['id']; ?>" <?php echo ($sucursal['id'] == $empleado['sucursalId']) ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($sucursal['nombre']); ?>
                     </option>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </select>
         </div>
     </div>
@@ -84,21 +95,21 @@ $cargos = $conexion->query("SELECT * FROM cargos WHERE id_area = " . (int)$emple
         <div class="col-md-6">
             <label class="form-label">Área <span class="text-danger">*</span></label>
             <select class="form-select" name="id_area" id="selectArea" required>
-                <?php while($area = $areas->fetch_assoc()): ?>
-                    <option value="<?php echo $area['id']; ?>" <?php echo ($area['id'] == $empleado['id_area']) ? 'selected' : ''; ?>>
+                <?php foreach ($areas as $area): ?>
+                    <option value="<?php echo $area['id']; ?>" <?php echo ($area['id'] == $empleado['areaId']) ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($area['nombre']); ?>
                     </option>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </select>
         </div>
         <div class="col-md-6">
             <label class="form-label">Cargo <span class="text-danger">*</span></label>
             <select class="form-select" name="id_cargo" id="selectCargo" required>
-                <?php while($cargo = $cargos->fetch_assoc()): ?>
-                    <option value="<?php echo $cargo['id']; ?>" <?php echo ($cargo['id'] == $empleado['id_cargo']) ? 'selected' : ''; ?>>
+                <?php foreach ($cargos as $cargo): ?>
+                    <option value="<?php echo $cargo['id']; ?>" <?php echo ($cargo['id'] == $empleado['cargoId']) ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($cargo['nombre']); ?>
                     </option>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </select>
         </div>
     </div>
