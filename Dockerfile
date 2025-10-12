@@ -7,9 +7,8 @@ RUN docker-php-ext-install mysqli pdo pdo_mysql
 # Copia el proyecto dentro del contenedor
 COPY . /var/www/html/
 
-# Cambia el DOCUMENT_ROOT de Apache a "public/"
+# Usa la carpeta raíz como DocumentRoot (NO cambies a /public)
 WORKDIR /var/www/html
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
 # Ajusta permisos
 RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
@@ -19,3 +18,4 @@ EXPOSE 80
 
 # Inicia Apache
 CMD ["apache2-foreground"]
+
