@@ -6,6 +6,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 require_once __DIR__ . '/../config/database.php';
 $current_page = basename($_SERVER['PHP_SELF']);
+
+ob_start();
 ?>
 <!DOCTYPE html>
 <html lang="es">

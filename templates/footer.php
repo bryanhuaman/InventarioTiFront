@@ -25,11 +25,12 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 
 
-
-</body>
-</html>
 <?php
 if (isset($conexion)) {
     $conexion->close();
 }
+
+ob_end_flush();
 ?>
+</body>
+</html>
