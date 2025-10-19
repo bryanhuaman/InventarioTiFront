@@ -9,7 +9,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fecha_devolucion = date("Y-m-d");
     $nombres_imagenes = []; // Array para guardar los nombres de los archivos
 
-    $conexion->begin_transaction();
     try {
         // --- Lógica para procesar las imágenes subidas ---
         $upload_dir = '../uploads/devoluciones/';
